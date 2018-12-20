@@ -1,6 +1,9 @@
 from binance.client import Client
 import time
 import csv
+import matplotlib.pyplot as plt
+import matplotlib.animation as animaiton
+from matplotlib import style
 
 api_secret = "NQTneKrJXluHCcmU5LkHX7Uk9qKJvuOB37ilHNt4nyeXll9harecCncLwgM24Q63"
 api_key = "ezynC6e1QBhbQYP9sM0pvLjb3VRyASAE9VFF808MIBzyfdKnOw8AWrnPCWq8p1wL"
@@ -17,7 +20,11 @@ sells_disc = []
 a_eth_buy = []
 a_eth_sell = []
 price_over_time = []
+times = []
+derv = []
+xs = []
 
+style.use('fivethirtyeight')
 
 def buy(prc, qty):
     USD_amount_b = prc * qty
@@ -39,26 +46,77 @@ def sell(prc, qty):
         return
 
 
-t_end = time.time() + 60 * (1/4)
+fig = plt.figure()
+ax1 = fig.add_subplot(1, 1, 1)
+
+
+def animate(i):
+    ax1.clear()
+    ax1.plot(xs, derv)
+
+
+ani = animaiton.FuncAnimation(fig, animate, interval=1000)
+
+count = 0
+t_end = time.time() + 60 * 30
 while time.time() < t_end:
     trades = client.get_recent_trades(symbol="ETHUSDT")
     price = float(trades[-1]['price'])
     amount = float(trades[-1]['qty'])
     is_sell = trades[-1]['isBuyerMaker']
     price_over_time.append(price)
+    times.append(int(time.clock()))
+    try:
+        if price_over_time[-1] == price_over_time[-2]:
+            del price_over_time[-2]
+    except:
+        pass
+    try:
+        if buys[-1] == buys[-2]:
+            del buys[-2]
+    except:
+        pass
+    try:
+        if sells[-1] == sells[-2]:
+            del sells[-2]
+    except:
+        pass
+    try:
+        if a_eth_buy[-1] == a_eth_buy[-2]:
+            del a_eth_buy[-2]
+    except:
+        pass
+    try:
+        if a_eth_sell[-1] == a_eth_sell[-2]:
+            del a_eth_sell[-2]
+    except:
+        pass
+    try:
+        if derv[-1] == derv[-2]:
+            del derv[-2]
+    except:
+        pass
+    try:
+        if times[-1] == times[-2]:
+            del times[-2]
+    except:
+        pass
+    try:
+        if len(price_over_time) % 20 == 0:
+            dx = (price_over_time[-1] - price_over_time[-20]) / (times[-1] - times[-20])
+            derv.append(dx)
+            count += 1
+            xs.append(count)
+        plt.pause(0.0001)
+    except:
+        pass
     if is_sell:
         sell(price, amount)
     elif not is_sell:
         buy(price, amount)
 
 
-buys = list(set(buys))
-sells = list(set(sells))
-price_over_time = list(set(price_over_time))
-a_eth_buy = list(set(a_eth_buy))
-a_eth_sell = list(set(a_eth_sell))
-
-
+print(times)
 def get_volume_USD(l):
     new_l = []
     c_sum = 0
@@ -88,7 +146,18 @@ to_csv(volumes_sell, "Volume USD (Sell)")
 to_csv(volumes_eth_buy, "Volume ETH (Buy)")
 to_csv(volumes__eth_sell, "Volume ETH (Sell)")
 to_csv(price_over_time, "Price (USD)")
+to_csv(derv, "Derivative of Price")
 
+avg_slope = sum(derv) / len(derv)
+slope = (price_over_time[-1] - price_over_time[0]) / (times[-1] - times[0])
+
+print(derv)
+print("")
+print("End of array slope: {}".format(derv[-1]))
+print("Average slope: {}".format(avg_slope))
+print("Final slope: {}".format(slope))
+print("steepest slope: {}".format(max(derv)))
+print("Lowest slope: {}".format(min(derv)))
 
 print("")
 
@@ -103,3 +172,5 @@ print("")
 print("Biggest Buy $ Order: ${}".format(max(buys)))
 print("Biggest Sell $ Order: ${}".format(max(sells)))
 
+plt.plot(xs, derv)
+plt.show()
