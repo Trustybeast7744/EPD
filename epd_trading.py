@@ -23,6 +23,8 @@ price_over_time = []
 times = []
 derv = []
 xs = []
+a = []
+b = []
 
 style.use('fivethirtyeight')
 
@@ -45,10 +47,16 @@ def sell(prc, qty):
         a_eth_sell.append(qty)
         return
 
+def del_prev_index(arr):
+    try:
+        if arr[-1] == arr[-2]:
+            del arr[-2]
+    except:
+        pass
+
 
 fig = plt.figure()
 ax1 = fig.add_subplot(1, 1, 1)
-
 
 def animate(i):
     ax1.clear()
@@ -58,7 +66,7 @@ def animate(i):
 ani = animaiton.FuncAnimation(fig, animate, interval=1000)
 
 count = 0
-t_end = time.time() + 60 * 30
+t_end = time.time() + 60 * 60
 while time.time() < t_end:
     trades = client.get_recent_trades(symbol="ETHUSDT")
     price = float(trades[-1]['price'])
@@ -66,48 +74,34 @@ while time.time() < t_end:
     is_sell = trades[-1]['isBuyerMaker']
     price_over_time.append(price)
     times.append(int(time.clock()))
-    try:
-        if price_over_time[-1] == price_over_time[-2]:
-            del price_over_time[-2]
-    except:
-        pass
-    try:
-        if buys[-1] == buys[-2]:
-            del buys[-2]
-    except:
-        pass
-    try:
-        if sells[-1] == sells[-2]:
-            del sells[-2]
-    except:
-        pass
-    try:
-        if a_eth_buy[-1] == a_eth_buy[-2]:
-            del a_eth_buy[-2]
-    except:
-        pass
-    try:
-        if a_eth_sell[-1] == a_eth_sell[-2]:
-            del a_eth_sell[-2]
-    except:
-        pass
+    del_prev_index(price_over_time)
+    del_prev_index(buys)
+    del_prev_index(sells)
+    del_prev_index(a_eth_buy)
+    del_prev_index(a_eth_sell)
+    del_prev_index(times)
     try:
         if derv[-1] == derv[-2]:
             del derv[-2]
+            del xs[-1]
     except:
         pass
     try:
-        if times[-1] == times[-2]:
-            del times[-2]
-    except:
-        pass
-    try:
-        if len(price_over_time) % 20 == 0:
+        if len(price_over_time) % 20 == 0 and len(derv) == len(xs):
             dx = (price_over_time[-1] - price_over_time[-20]) / (times[-1] - times[-20])
             derv.append(dx)
-            count += 1
-            xs.append(count)
+            for i in range(len(derv)):
+                xs.append(len(derv))
+                xs = list(set(xs))
         plt.pause(0.0001)
+    except:
+        pass
+    try:
+        if len(derv) % 30 == 0:
+            count += 1
+            average = sum(derv) / len(derv)
+            a.append(average)
+            b.append(count)
     except:
         pass
     if is_sell:
@@ -151,7 +145,6 @@ to_csv(derv, "Derivative of Price")
 avg_slope = sum(derv) / len(derv)
 slope = (price_over_time[-1] - price_over_time[0]) / (times[-1] - times[0])
 
-print(derv)
 print("")
 print("End of array slope: {}".format(derv[-1]))
 print("Average slope: {}".format(avg_slope))
